@@ -6,7 +6,7 @@ import { InputNumber } from 'primereact/inputnumber';
 import { Button } from 'primereact/button';
 import { ProgressSpinner } from 'primereact/progressspinner';
 import { Paginator } from 'primereact/paginator';
-import 'ArtworkTable.css';
+import './ArtworkTable.css'; // Import custom styles for the ArtworkTable
 
 // Define interfaces
 interface PaginatorPageState {
@@ -112,12 +112,14 @@ const ArtworkTable: React.FC = () => {
     const selectionHeaderTemplate = () => {
         return (
             <div className="flex align-items-center justify-content-center">
+                
                 <Button
                     type="button"
                     icon="pi pi-chevron-down"
                     onClick={(e) => op.current?.toggle(e)}
                     className="p-button-text p-button-sm"
                 />
+                <span>&nbsp;&nbsp;</span>
             </div>
         );
     };

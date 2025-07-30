@@ -9,6 +9,8 @@
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;
+  font-size: 14px !important;
+  font-weight: bold !important;
 }
 
 .custom-overlay-panel .p-overlaypanel-close:hover {
@@ -16,7 +18,17 @@
   color: #000 !important;
 }
 
+.custom-overlay-panel .p-overlaypanel-close::before {
+  content: '×' !important;
+  font-size: 16px !important;
+  color: #333 !important;
+  line-height: 1 !important;
+}
+
+.custom-overlay-panel .p-overlaypanel-close:hover::before {
+  color: #000 !important;
+}
+
 .custom-overlay-panel .p-overlaypanel-close .p-icon {
-  font-size: 12px !important;
-  color: inherit !important;
+  display: none !important;
 }
