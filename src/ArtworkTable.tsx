@@ -6,9 +6,8 @@ import { InputNumber } from 'primereact/inputnumber';
 import { Button } from 'primereact/button';
 import { ProgressSpinner } from 'primereact/progressspinner';
 import { Paginator } from 'primereact/paginator';
-import './ArtworkTable.css'; // Import custom styles for the ArtworkTable
+import './ArtworkTable.css'; 
 
-// Define interfaces
 interface PaginatorPageState {
     first: number;
     rows: number;
@@ -29,8 +28,6 @@ const ArtworkTable: React.FC = () => {
     const [totalRecords, setTotalRecords] = useState<number>(0);
     const [first, setFirst] = useState<number>(0);
     
-    // selectedArtworks stores the full Artwork objects that are selected
-    // as required by DataTable's 'selection' prop for selectionMode="checkbox"
     const [selectedArtworks, setSelectedArtworks] = useState<Artwork[]>([]);
     
     const op = useRef<OverlayPanel>(null);
@@ -69,22 +66,14 @@ const ArtworkTable: React.FC = () => {
         setFirst(event.first);
     };
 
-    // Selection Logic for DataTable's Built-in Checkboxes
-    // The DataTable's onSelectionChange will give you the updated array of selected items (on current page)
     const onDataTableSelectionChange = (e: { value: Artwork[] }) => {
-        // This maintains selection across all pages by merging current page selection with global selection
-        
-
-        // Get IDs of artworks currently displayed on this page
         const currentArtworksIds = new Set(artworks.map(item => item.id));
 
-        // Remove all artworks from the current page from the global selection first
         const updatedGlobalSelectedArtworks = selectedArtworks.filter(
             item => !currentArtworksIds.has(item.id)
         );
-
-        // Add the newly selected items from the current page
-        const newlySelectedOnPage = e.value; // These are the selected ones from the current page
+        
+        const newlySelectedOnPage = e.value; 
 
         const finalSelectedArtworks = [
             ...updatedGlobalSelectedArtworks,
@@ -94,10 +83,8 @@ const ArtworkTable: React.FC = () => {
         setSelectedArtworks(finalSelectedArtworks);
     };
     
-    // Helper to get selected Artwork IDs (for display and highlighting)
     const selectedArtworkIds = new Set(selectedArtworks.map(a => a.id));
 
-    // Body template for Code column content
     const codeBodyTemplate = (rowData: Artwork) => {
         return (
             <div className="flex align-items-center gap-2">
@@ -106,7 +93,6 @@ const ArtworkTable: React.FC = () => {
         );
     };
 
-    // Custom header template with only the dropdown arrow (no "Select" text)
     const selectionHeaderTemplate = () => {
         return (
             <div className="flex align-items-center justify-content-center">
@@ -122,25 +108,23 @@ const ArtworkTable: React.FC = () => {
         );
     };
 
-    // Apply bulk selection across multiple pages
     const applyRowsPerPageAndSelect = async () => {
         const totalToSelect = tempRows || 0;
 
         if (totalToSelect <= 0) {
-            setSelectedArtworks([]); // Clear all
+            setSelectedArtworks([]); 
             op.current?.hide();
             return;
         }
 
         setLoading(true);
-        const newSelectedItems: Artwork[] = []; // Store full objects
+        const newSelectedItems: Artwork[] = []; 
 
         try {
             let selectedCount = 0;
             let currentPage = 1;
             const maxPages = Math.ceil(totalRecords / API_PAGE_SIZE);
 
-            // Fetch pages sequentially to get the required number of items
             while (selectedCount < totalToSelect && currentPage <= maxPages) {
                 const response = await fetch(`https://api.artic.edu/api/v1/artworks?page=${currentPage}`);
                 const data = await response.json();
@@ -170,7 +154,6 @@ const ArtworkTable: React.FC = () => {
             setLoading(false);
         }
 
-        // Reset to first page to show selection
         setFirst(0);
         op.current?.hide();
     };
@@ -219,23 +202,23 @@ const ArtworkTable: React.FC = () => {
                         totalRecords={totalRecords}
                         emptyMessage="No artworks found."
                         loading={loading}
-                        selectionMode="checkbox" // Crucial for built-in checkboxes
-                        selection={selectedArtworks} // Provide the full selected objects
-                        onSelectionChange={onDataTableSelectionChange} // Handle DataTable's selection changes
-                        rowClassName={(rowData) => selectedArtworkIds.has(rowData.id) ? 'p-highlight' : ''} // Row highlighting
+                        selectionMode="checkbox" 
+                        selection={selectedArtworks}
+                        onSelectionChange={onDataTableSelectionChange} 
+                        rowClassName={(rowData) => selectedArtworkIds.has(rowData.id) ? 'p-highlight' : ''}
                     >
-                        {/* Built-in checkbox column with custom header (no "Select" text) */}
+                        {/* checkbox column */}
                         <Column
-                            selectionMode="multiple" // This column defines the checkbox selection
-                            header={selectionHeaderTemplate} // Custom header with only dropdown button
-                            headerStyle={{ width: '120px' }} // Adjust width for header content
+                            selectionMode="multiple" 
+                            header={selectionHeaderTemplate}
+                            headerStyle={{ width: '120px' }} 
                             style={{ width: '120px' }}
-                            frozen // Keep it visible on scroll
+                            frozen
                         />
                         {/* Code column */}
                         <Column
                             header="Code"
-                            body={codeBodyTemplate} // Display the code/link
+                            body={codeBodyTemplate} 
                             style={{ width: '150px', minWidth: '150px' }}
                         />
                         <Column 
@@ -259,13 +242,13 @@ const ArtworkTable: React.FC = () => {
                     
                     {selectedArtworks.length > 0 && (
                         <div className="mt-3 p-3 border-1 surface-border border-round">
-                            {/* <strong>Selected: {selectedArtworks.length} artwork(s)</strong> */}
+                            
                             <Button 
                                 label="Clear All Selections" 
                                 className="ml-3" 
                                 size="small"
                                 severity="secondary"
-                                onClick={() => setSelectedArtworks([])} // Clear the array
+                                onClick={() => setSelectedArtworks([])} 
                             />
                         </div>
                     )}
