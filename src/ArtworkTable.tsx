@@ -6,6 +6,7 @@ import { InputNumber } from 'primereact/inputnumber';
 import { Button } from 'primereact/button';
 import { ProgressSpinner } from 'primereact/progressspinner';
 import { Paginator } from 'primereact/paginator';
+import 'ArtworkTable.css';
 
 // Define interfaces
 interface PaginatorPageState {
@@ -176,7 +177,7 @@ const ArtworkTable: React.FC = () => {
 
     return (
         <div className="card">
-            <OverlayPanel ref={op} showCloseIcon closeOnEscape>
+            <OverlayPanel ref={op} showCloseIcon closeOnEscape className="custom-overlay-panel">
                 <div className="flex flex-column gap-2" style={{ minWidth: '200px' }}>
                     <label htmlFor="rowsToSelect">Select number of rows:</label>
                     <InputNumber

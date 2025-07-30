@@ -1,0 +1,22 @@
+/* Custom styles for PrimeReact OverlayPanel close button */
+.custom-overlay-panel .p-overlaypanel-close {
+  background: rgba(255, 255, 255, 0.9) !important;
+  color: #333 !important;
+  border: 1px solid #ddd !important;
+  border-radius: 4px !important;
+  width: 24px !important;
+  height: 24px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+.custom-overlay-panel .p-overlaypanel-close:hover {
+  background: rgba(255, 255, 255, 1) !important;
+  color: #000 !important;
+}
+
+.custom-overlay-panel .p-overlaypanel-close .p-icon {
+  font-size: 12px !important;
+  color: inherit !important;
+}
