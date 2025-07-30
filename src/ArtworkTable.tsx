@@ -74,8 +74,6 @@ const ArtworkTable: React.FC = () => {
     const onDataTableSelectionChange = (e: { value: Artwork[] }) => {
         // This maintains selection across all pages by merging current page selection with global selection
         
-        // Create a Set of IDs from existing selected items to track global selection
-        const globalSelectedIds = new Set(selectedArtworks.map(item => item.id));
 
         // Get IDs of artworks currently displayed on this page
         const currentArtworksIds = new Set(artworks.map(item => item.id));
