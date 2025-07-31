@@ -28,10 +28,12 @@ const ArtworkTable: React.FC = () => {
     const [totalRecords, setTotalRecords] = useState<number>(0);
     const [first, setFirst] = useState<number>(0);
     
-    const [selectedArtworks, setSelectedArtworks] = useState<Artwork[]>([]);
+    // Store only selected IDs for efficiency instead of full objects
+    const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
     
     const op = useRef<OverlayPanel>(null);
     const [tempRows, setTempRows] = useState<number | null>(null);
+    const [bulkSelectLoading, setBulkSelectLoading] = useState<boolean>(false);
 
     const API_PAGE_SIZE = 12;
 
@@ -66,24 +68,20 @@ const ArtworkTable: React.FC = () => {
         setFirst(event.first);
     };
 
+    // Convert selected IDs to Artwork objects for current page display
+    const selectedArtworks = artworks.filter(artwork => selectedIds.has(artwork.id));
+
     const onDataTableSelectionChange = (e: { value: Artwork[] }) => {
-        const currentArtworksIds = new Set(artworks.map(item => item.id));
-
-        const updatedGlobalSelectedArtworks = selectedArtworks.filter(
-            item => !currentArtworksIds.has(item.id)
-        );
+        const currentPageArtworkIds = new Set(artworks.map(item => item.id));
         
-        const newlySelectedOnPage = e.value; 
-
-        const finalSelectedArtworks = [
-            ...updatedGlobalSelectedArtworks,
-            ...newlySelectedOnPage
-        ];
-
-        setSelectedArtworks(finalSelectedArtworks);
+        // Remove current page items from selection
+        const updatedSelectedIds = new Set([...selectedIds].filter(id => !currentPageArtworkIds.has(id)));
+        
+        // Add newly selected items from current page
+        e.value.forEach(artwork => updatedSelectedIds.add(artwork.id));
+        
+        setSelectedIds(updatedSelectedIds);
     };
-    
-    const selectedArtworkIds = new Set(selectedArtworks.map(a => a.id));
 
     const codeBodyTemplate = (rowData: Artwork) => {
         return (
@@ -96,7 +94,6 @@ const ArtworkTable: React.FC = () => {
     const selectionHeaderTemplate = () => {
         return (
             <div className="flex align-items-center justify-content-center">
-                
                 <Button
                     type="button"
                     icon="pi pi-chevron-down"
@@ -108,60 +105,82 @@ const ArtworkTable: React.FC = () => {
         );
     };
 
+    // Efficient bulk selection using parallel requests and optimized data handling
     const applyRowsPerPageAndSelect = async () => {
         const totalToSelect = tempRows || 0;
 
         if (totalToSelect <= 0) {
-            setSelectedArtworks([]); 
+            setSelectedIds(new Set());
             op.current?.hide();
             return;
         }
 
-        setLoading(true);
-        const newSelectedItems: Artwork[] = []; 
-
+        setBulkSelectLoading(true);
+        
         try {
+            const maxPages = Math.ceil(totalToSelect / API_PAGE_SIZE);
+            const pagesToFetch = Math.min(maxPages, Math.ceil(totalRecords / API_PAGE_SIZE));
+            
+            // Create array of page numbers to fetch
+            const pageNumbers = Array.from({ length: pagesToFetch }, (_, i) => i + 1);
+            
+            // Fetch multiple pages in parallel (with concurrency limit)
+            const CONCURRENT_REQUESTS = 3; // Limit concurrent requests to avoid overwhelming the API
+            const newSelectedIds = new Set<number>();
             let selectedCount = 0;
-            let currentPage = 1;
-            const maxPages = Math.ceil(totalRecords / API_PAGE_SIZE);
 
-            while (selectedCount < totalToSelect && currentPage <= maxPages) {
-                const response = await fetch(`https://api.artic.edu/api/v1/artworks?page=${currentPage}`);
-                const data = await response.json();
+            for (let i = 0; i < pageNumbers.length; i += CONCURRENT_REQUESTS) {
+                if (selectedCount >= totalToSelect) break;
                 
-                const fetchedArtworks: Artwork[] = data.data.map((item: any) => ({
-                    id: item.id,
-                    api_link: item.id.toString(),
-                    title: item.title,
-                    artwork_type_title: item.artwork_type_title || 'N/A',
-                }));
+                const batch = pageNumbers.slice(i, i + CONCURRENT_REQUESTS);
+                const batchPromises = batch.map(pageNum => 
+                    fetch(`https://api.artic.edu/api/v1/artworks?page=${pageNum}`)
+                        .then(response => response.json())
+                );
 
-                for (const artwork of fetchedArtworks) {
-                    if (selectedCount < totalToSelect) {
-                        newSelectedItems.push(artwork);
+                const batchResults = await Promise.all(batchPromises);
+                
+                for (const data of batchResults) {
+                    if (selectedCount >= totalToSelect) break;
+                    
+                    for (const item of data.data) {
+                        if (selectedCount >= totalToSelect) break;
+                        newSelectedIds.add(item.id);
                         selectedCount++;
-                    } else {
-                        break;
                     }
                 }
-                currentPage++;
             }
             
-            setSelectedArtworks(newSelectedItems);
+            setSelectedIds(newSelectedIds);
         } catch (error) {
-            console.error("Error fetching data for auto-selection:", error);
+            console.error("Error fetching data for bulk selection:", error);
         } finally {
-            setLoading(false);
+            setBulkSelectLoading(false);
         }
 
+        // Reset to first page to show selection
         setFirst(0);
         op.current?.hide();
+    };
+
+    // Optimized select all on current page
+    const selectAllCurrentPage = () => {
+        const currentPageIds = new Set(artworks.map(item => item.id));
+        const updatedSelectedIds = new Set([...selectedIds, ...currentPageIds]);
+        setSelectedIds(updatedSelectedIds);
+    };
+
+    // Optimized deselect all on current page
+    const deselectAllCurrentPage = () => {
+        const currentPageIds = new Set(artworks.map(item => item.id));
+        const updatedSelectedIds = new Set([...selectedIds].filter(id => !currentPageIds.has(id)));
+        setSelectedIds(updatedSelectedIds);
     };
 
     return (
         <div className="card">
             <OverlayPanel ref={op} showCloseIcon closeOnEscape className="custom-overlay-panel">
-                <div className="flex flex-column gap-2" style={{ minWidth: '200px' }}>
+                <div className="flex flex-column gap-2" style={{ minWidth: '250px' }}>
                     <label htmlFor="rowsToSelect">Select number of rows:</label>
                     <InputNumber
                         id="rowsToSelect"
@@ -174,14 +193,28 @@ const ArtworkTable: React.FC = () => {
                         showButtons={false}
                     />
                     <Button 
-                        label="Apply Selection" 
+                        label="Apply Bulk Selection" 
                         onClick={applyRowsPerPageAndSelect} 
                         className="mt-2" 
-                        loading={loading}
-                        disabled={loading}
+                        loading={bulkSelectLoading}
+                        disabled={bulkSelectLoading || loading}
                     />
+                    <div className="flex gap-2">
+                        <Button 
+                            label="Select Page" 
+                            onClick={selectAllCurrentPage}
+                            className="p-button-sm p-button-outlined"
+                            size="small"
+                        />
+                        <Button 
+                            label="Deselect Page" 
+                            onClick={deselectAllCurrentPage}
+                            className="p-button-sm p-button-outlined"
+                            size="small"
+                        />
+                    </div>
                     <small className="text-500">
-                        Currently selected: {selectedArtworks.length} rows
+                        Currently selected: {selectedIds.size} rows
                     </small>
                 </div>
             </OverlayPanel>
@@ -205,9 +238,8 @@ const ArtworkTable: React.FC = () => {
                         selectionMode="checkbox" 
                         selection={selectedArtworks}
                         onSelectionChange={onDataTableSelectionChange} 
-                        rowClassName={(rowData) => selectedArtworkIds.has(rowData.id) ? 'p-highlight' : ''}
+                        rowClassName={(rowData) => selectedIds.has(rowData.id) ? 'p-highlight' : ''}
                     >
-                        {/* checkbox column */}
                         <Column
                             selectionMode="multiple" 
                             header={selectionHeaderTemplate}
@@ -215,7 +247,6 @@ const ArtworkTable: React.FC = () => {
                             style={{ width: '120px' }}
                             frozen
                         />
-                        {/* Code column */}
                         <Column
                             header="Code"
                             body={codeBodyTemplate} 
@@ -240,16 +271,23 @@ const ArtworkTable: React.FC = () => {
                         onPageChange={onPageChange}
                     />
                     
-                    {selectedArtworks.length > 0 && (
+                    {selectedIds.size > 0 && (
                         <div className="mt-3 p-3 border-1 surface-border border-round">
-                            
-                            <Button 
-                                label="Clear All Selections" 
-                                className="ml-3" 
-                                size="small"
-                                severity="secondary"
-                                onClick={() => setSelectedArtworks([])} 
-                            />
+                            <div className="flex align-items-center gap-3">
+                                <span><strong>Selected: {selectedIds.size} artwork(s)</strong></span>
+                                <Button 
+                                    label="Clear All Selections" 
+                                    size="small"
+                                    severity="secondary"
+                                    onClick={() => setSelectedIds(new Set())}
+                                />
+                                {bulkSelectLoading && (
+                                    <div className="flex align-items-center gap-2">
+                                        <ProgressSpinner style={{ width: '20px', height: '20px' }} />
+                                        <span className="text-sm">Loading selections...</span>
+                                    </div>
+                                )}
+                            </div>
                         </div>
                     )}
                 </>

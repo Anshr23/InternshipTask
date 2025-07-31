@@ -12,7 +12,7 @@ This is a basic React application that displays artwork data in a table, featuri
 
 ## Live Demo
 
-**[Deployed Application Link Here]** (https://internshiptaskk.netlify.app/)
+**[Deployed Application Link Here]**(https://internshiptaskk.netlify.app/)
 
 ## Setup
 
